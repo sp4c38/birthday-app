@@ -100,14 +100,11 @@ struct ProfileView: View {
         case edit
     }
     
+    let context: Context
+    
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.presentationMode) var presentationMode
-    let context: Context
-    
-    init(context: Context) {
-        self.context = context
-    }
     
     @State var imageState: ProfilePictureView.ImageState = .empty
     @State var name: String = ""
@@ -147,17 +144,11 @@ struct ProfileView: View {
                     }
                 }
             }
-            .navigationTitle(context == .edit ? "Edit" : "Add profile")
+            .navigationTitle(context == .edit ? "Edit profile" : "Add profile")
             .toolbar {
-                ToolbarItem { Button("Save", action: saveProfile) }
+                ToolbarItem(placement: .confirmationAction) { Button("Save", action: saveProfile) }
                 
-                ToolbarItem(placement: .bottomBar) {
-                    Button(action: { presentationMode.wrappedValue.dismiss() }) {
-                        Image(systemName: "chevron.compact.down")
-                            .font(.system(size: 55))
-                            .foregroundColor(.black)
-                    }
-                }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
             }
             .alert("Database Error", isPresented: $profileSaveFailed) {
                 Button("Ok", role: .cancel) { presentationMode.wrappedValue.dismiss() }
@@ -184,14 +175,23 @@ struct ProfileView: View {
     }
     
     func saveProfile() {
-        guard case .success(let uiImage) = imageState else {
+        if case .loading = imageState {
             return
         }
         
         let profile = Profile(context: managedObjectContext)
-        profile.image = uiImage.jpegData(compressionQuality: 0.8)
+        
+        switch imageState {
+        case .empty, .failure:
+            profile.image = nil
+        case .success(let uIImage):
+            profile.image = uIImage.jpegData(compressionQuality: 0.8)
+        case .loading:
+            break
+        }
         profile.name = name
         profile.birthday = birthday
+        
         do {
             try managedObjectContext.save()
             print("Saved new profile.")

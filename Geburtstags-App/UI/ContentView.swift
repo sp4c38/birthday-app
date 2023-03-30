@@ -7,29 +7,6 @@
 
 import SwiftUI
 
-struct SettingsView: View {
-    @State var notificationsOn = true
-    
-    var body: some View {
-        VStack {
-            Toggle(isOn: $notificationsOn) {
-                Text("Notifications")
-            }
-    
-            Button(action:  {}) {
-                Text("Import from contacts")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            
-            Spacer()
-        }
-        .navigationTitle("Settings")
-        .padding([.leading, .trailing], 16)
-        .padding(.top, 10)
-    }
-}
-
 // Countdown: https://catch-questions.com/english/posts/activity1.html
 
 struct ContentView: View {
@@ -58,7 +35,7 @@ struct ContentView: View {
                                 .scaledToFit()
                                 .frame(width: 100, height: 100)
                             
-                            Text(profile.birthday != nil ? birthdayDateFormatter.string(for: profile.birthday)! : "")
+                            Text(getBirthdayCountdown(from: profile))
                                 .bold()
                                 .font(.title)
                             
@@ -93,6 +70,11 @@ struct ContentView: View {
         return Image(uiImage: uiImage)
     }
     
+    func getBirthdayCountdown(from profile: Profile) -> String {
+        guard let nextBirthday = profile.nextBirthday else { return "NaN" }
+        return birthdayDateFormatter.string(for: nextBirthday) ?? "NaN"
+    }
+    
     func deleteProfile(at indexSet: IndexSet) {
         for i in indexSet {
             let profile = profiles[i]
@@ -108,7 +90,6 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView()
         ContentView()
     }
 }

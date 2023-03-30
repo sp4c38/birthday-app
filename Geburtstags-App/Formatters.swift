@@ -12,16 +12,15 @@ class BirthdayRelativeDateFormatter: Formatter {
         guard let date = obj as? Date else { return nil }
         
         let calendar = Calendar.current
-        let dateDifference = calendar.dateComponents([.month, .day, .hour, .minute], from: Date.now, to: date)
+        let midnightToday = calendar.startOfDay(for: Date())
         
-        let month = dateDifference.month!
+        let dateDifference = calendar.dateComponents([.day, .hour, .minute], from: midnightToday, to: date)
+        
         let days = dateDifference.day!
         let hours = dateDifference.hour!
         let minutes = dateDifference.minute!
 
-        if month >= 1 {
-            return "\(month) month"
-        } else if days >= 1 {
+        if days >= 1 {
             return "\(days) " + (days > 1 ? "days" : "day")
         } else if hours >= 1 {
             return "\(hours) " + (hours > 1 ? "hours" : "hour")
