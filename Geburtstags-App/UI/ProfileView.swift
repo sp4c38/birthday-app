@@ -25,8 +25,7 @@ struct ProfilePictureView: View {
                 switch imageState {
                 case .success(let image):
                     Image(uiImage: image)
-                        .resizable()
-                        .frame(width: 150, height: 150)
+                        .resizable().scaledToFit().frame(height: 150)
                         .clipShape(Circle())
                         .shadow(radius: 5)
                 case .failure:

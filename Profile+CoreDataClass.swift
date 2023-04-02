@@ -22,13 +22,10 @@ public class Profile: NSManagedObject {
         components.year = currentYear
         var upcomingBirthday = calendar.date(from: components)! // The upcoming birthday.
 
-        if upcomingBirthday > midnightToday {
-        } else {
+        if upcomingBirthday < midnightToday {
             components.year = currentYear + 1
             upcomingBirthday = calendar.date(from: components)!
         }
-
-        print("Upcoming birthday for \(name ?? "nil"): ", upcomingBirthday)
 
         return upcomingBirthday
     }

@@ -43,6 +43,9 @@ class CoreDataManager {
 
 @main
 struct Geburtstags_AppApp: App {
+    // Will only have true as a value if showWelcomeScreen wasn't yet changed at any point in time.
+    @AppStorage("showWelcomeScreen") var showWelcomeScreen = true
+    
     let coreDataManager = CoreDataManager()
     
     var body: some Scene {
@@ -56,8 +59,14 @@ struct Geburtstags_AppApp: App {
                             .foregroundColor(.red)
                     }
             } else {
-                ContentView()
-                    .environment(\.managedObjectContext, coreDataManager.container.viewContext)
+                NavigationStack {
+                    if showWelcomeScreen {
+                        WelcomeScreen()
+                    } else {
+                        ContentView()
+                    }
+                }
+                .environment(\.managedObjectContext, coreDataManager.container.viewContext)
             }
         }
     }

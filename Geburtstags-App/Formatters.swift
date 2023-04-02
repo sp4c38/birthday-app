@@ -12,22 +12,27 @@ class BirthdayRelativeDateFormatter: Formatter {
         guard let date = obj as? Date else { return nil }
         
         let calendar = Calendar.current
-        let midnightToday = calendar.startOfDay(for: Date())
+        let now = Date()
+        let dateDifference = calendar.dateComponents([.day, .hour, .minute, .second], from: now, to: date)
         
-        let dateDifference = calendar.dateComponents([.day, .hour, .minute], from: midnightToday, to: date)
-        
+        // TODO: There is no live updating of the time inside of the view yet.
         let days = dateDifference.day!
         let hours = dateDifference.hour!
         let minutes = dateDifference.minute!
+        let seconds = dateDifference.second!
 
-        if days >= 1 {
-            return "\(days) " + (days > 1 ? "days" : "day")
-        } else if hours >= 1 {
-            return "\(hours) " + (hours > 1 ? "hours" : "hour")
-        } else if minutes >= 1 {
-            return "\(minutes) " + (minutes > 1 ? "minutes" : "minute")
+        print(days, hours, minutes)
+        
+        if days <= 0 && hours <= 0 && minutes <= 0 && seconds <= 0 {
+            return "🥳 Happy Birthday"
+        } else if days > 2 {
+            return "\(days) days"
+        } else if hours > 2 {
+            return "\(hours) hours"
+        } else if minutes > 2 {
+            return "\(minutes) minutes"
         } else {
-            return "NaN"
+            return "\(seconds) seconds"
         }
     }
 }

@@ -24,43 +24,40 @@ struct ContentView: View {
     @State var showEditProfile = false
     
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(profiles) { profile in
-                    Button(action: { showEditProfile = true }) {
-                        HStack(alignment: .bottom, spacing: 15) {
-                            getProfileImage(from: profile.image)?
-                                .resizable()
-                                .clipShape(Circle())
-                                .scaledToFit()
-                                .frame(width: 100, height: 100)
-                            
-                            Text(getBirthdayCountdown(from: profile))
-                                .bold()
-                                .font(.title)
-                            
-                            Text(profile.name ?? "")
-                                .baselineOffset(4)
-                        }
-                        .foregroundColor(.black)
+        List {
+            ForEach(profiles) { profile in
+                Button(action: { showEditProfile = true }) {
+                    HStack(alignment: .center, spacing: 10) {
+                        getProfileImage(from: profile.image)?
+                            .resizable().scaledToFit().frame(height: 50)
+                            .clipShape(Circle())
+                        
+                        Text(getBirthdayCountdown(from: profile))
+                            .bold()
+                            .font(.title)
+                        
+                        Text(profile.name ?? "")
+                            .baselineOffset(-3)
                     }
-                }
-                .onDelete(perform: deleteProfile)
-            }
-            .listStyle(.grouped)
-            .navigationTitle("birthdays")
-            .toolbar {
-                ToolbarItem {
-                    NavigationLink(destination: SettingsView()) { Image(systemName: "gear") }
-                }
-                
-                ToolbarItem(placement: .bottomBar) {
-                    Button(action: { showAddProfile = true }) { Image(systemName: "plus") }
+                    .foregroundColor(.black)
                 }
             }
-            .sheet(isPresented: $showEditProfile) { ProfileView(context: .edit) }
-            .sheet(isPresented: $showAddProfile) { ProfileView(context: .add) }
+            .onDelete(perform: deleteProfile)
         }
+        .listStyle(.grouped)
+        .navigationTitle("birthdays")
+        .toolbar {
+            ToolbarItem {
+                NavigationLink(destination: SettingsView()) { Image(systemName: "gear") }
+            }
+            
+            ToolbarItem(placement: .bottomBar) {
+                Button(action: { showAddProfile = true }) { Image(systemName: "plus") }
+            }
+        }
+        .sheet(isPresented: $showEditProfile) { ProfileView(context: .edit) }
+        .sheet(isPresented: $showAddProfile) { ProfileView(context: .add) }
+        .navigationBarBackButtonHidden()
     }
     
     func getProfileImage(from data: Data?) -> Image? {
