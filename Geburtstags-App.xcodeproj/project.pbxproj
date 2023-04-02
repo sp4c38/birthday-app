@@ -312,7 +312,7 @@
 				INFOPLIST_FILE = "Geburtstags-App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = birthdays;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
-				INFOPLIST_KEY_NSContactsUsageDescription = "To get the birthdays of your contacts.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "To read the birthdays of your contacts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -349,7 +349,7 @@
 				INFOPLIST_FILE = "Geburtstags-App/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = birthdays;
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
-				INFOPLIST_KEY_NSContactsUsageDescription = "To get the birthdays of your contacts.";
+				INFOPLIST_KEY_NSContactsUsageDescription = "To read the birthdays of your contacts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
