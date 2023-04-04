@@ -5,6 +5,7 @@
 //  Created by Jannes Schäfer on 02.10.22.
 //
 
+import Contacts
 import CoreData
 import SwiftUI
 
@@ -41,12 +42,67 @@ class CoreDataManager {
     }
 }
 
+class ProfileManager: ObservableObject {
+    @Published var profiles = [Profile]()
+    
+    let managedObjectContext: NSManagedObjectContext
+    let placeholderContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+    
+    init(managedObjectContext: NSManagedObjectContext) {
+        self.managedObjectContext = managedObjectContext
+        collectProfiles()
+    }
+    
+    func collectProfiles() {
+        print("Collecting profiles.")
+        profiles = []
+        do {
+            let storedProfiles = try managedObjectContext.fetch(Profile.fetchRequest())
+            profiles.append(contentsOf: storedProfiles)
+        } catch {
+            print("Error retrieving stored profiles: \(error).")
+        }
+        
+        let store = CNContactStore()
+        let keysToFetch = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactBirthdayKey, CNContactImageDataKey] as [CNKeyDescriptor]
+        do {
+            let contacts = try store.unifiedContacts(matching: NSPredicate(value: true), keysToFetch: keysToFetch)
+            for contact in contacts {
+                guard let birthdayDateComponents = contact.birthday,
+                      let birthday = Calendar.current.date(from: birthdayDateComponents)
+                else { continue }
+                
+                let newProfile = Profile(context: placeholderContext)
+                newProfile.name = "\(contact.givenName) \(contact.familyName)"
+                newProfile.birthday = birthday
+                newProfile.image = contact.imageData
+                profiles.append(newProfile)
+            }
+        } catch {
+            print("Error: \(error)")
+        }
+        
+        // Sort profiles
+        profiles.sort { firstProfile, secondProfile in // Evaluate if input profiles are in increasing order.
+            guard let firstNextBirthday = firstProfile.nextBirthday,
+                  let secondNextBirthday = secondProfile.nextBirthday else { return true }
+            return secondNextBirthday >= firstNextBirthday
+        }
+    }
+}
+
 @main
 struct Geburtstags_AppApp: App {
     // Will only have true as a value if showWelcomeScreen wasn't yet changed at any point in time.
     @AppStorage("showWelcomeScreen") var showWelcomeScreen = true
     
-    let coreDataManager = CoreDataManager()
+    let coreDataManager: CoreDataManager
+    let profileManager: ProfileManager
+    
+    init() {
+        coreDataManager = CoreDataManager()
+        profileManager = ProfileManager(managedObjectContext: coreDataManager.container.viewContext)
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -67,6 +123,7 @@ struct Geburtstags_AppApp: App {
                     }
                 }
                 .environment(\.managedObjectContext, coreDataManager.container.viewContext)
+                .environmentObject(profileManager)
             }
         }
     }

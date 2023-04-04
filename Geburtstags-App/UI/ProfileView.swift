@@ -104,6 +104,7 @@ struct ProfileView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var profileManager: ProfileManager
     
     @State var imageState: ProfilePictureView.ImageState = .empty
     @State var name: String = ""
@@ -194,6 +195,7 @@ struct ProfileView: View {
         do {
             try managedObjectContext.save()
             print("Saved new profile.")
+            profileManager.collectProfiles()
             presentationMode.wrappedValue.dismiss()
         } catch {
             profileSaveFailed = true

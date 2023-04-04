@@ -5,6 +5,7 @@
 //  Created by Jannes Schäfer on 02.10.22.
 //
 
+import CoreData
 import SwiftUI
 
 // Countdown: https://catch-questions.com/english/posts/activity1.html
@@ -16,8 +17,9 @@ struct ContentView: View {
     }
     
     @Environment(\.managedObjectContext) var managedObjectContext
+    @Environment(\.scenePhase) var scenePhase
+    @EnvironmentObject var profileManager: ProfileManager
     
-    @FetchRequest(entity: Profile.entity(), sortDescriptors: []) var profiles: FetchedResults<Profile>
     let birthdayDateFormatter = BirthdayRelativeDateFormatter()
     
     @State var showAddProfile = false
@@ -25,7 +27,7 @@ struct ContentView: View {
     
     var body: some View {
         List {
-            ForEach(profiles) { profile in
+            ForEach(profileManager.profiles) { profile in
                 Button(action: { showEditProfile = true }) {
                     HStack(alignment: .center, spacing: 10) {
                         getProfileImage(from: profile.image)?
@@ -58,6 +60,7 @@ struct ContentView: View {
         .sheet(isPresented: $showEditProfile) { ProfileView(context: .edit) }
         .sheet(isPresented: $showAddProfile) { ProfileView(context: .add) }
         .navigationBarBackButtonHidden()
+        .onChange(of: scenePhase) { if $0 == .active { profileManager.collectProfiles() } }
     }
     
     func getProfileImage(from data: Data?) -> Image? {
@@ -74,7 +77,7 @@ struct ContentView: View {
     
     func deleteProfile(at indexSet: IndexSet) {
         for i in indexSet {
-            let profile = profiles[i]
+            let profile = profileManager.profiles[i]
             managedObjectContext.delete(profile)
         }
         do {

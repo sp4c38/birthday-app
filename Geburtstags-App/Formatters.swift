@@ -20,8 +20,6 @@ class BirthdayRelativeDateFormatter: Formatter {
         let hours = dateDifference.hour!
         let minutes = dateDifference.minute!
         let seconds = dateDifference.second!
-
-        print(days, hours, minutes)
         
         if days <= 0 && hours <= 0 && minutes <= 0 && seconds <= 0 {
             return "🥳 Happy Birthday"
