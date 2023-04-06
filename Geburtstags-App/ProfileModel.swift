@@ -6,19 +6,19 @@
 //
 //
 
-import Foundation
 import CoreData
+import Foundation
+import SwiftUI
 
-protocol ProfileProtocol: Identifiable {
-    var id: UUID { get }
-    var name: String? { get }
-    var birthday: Date? { get }
-    var image: Data? { get }
-    
-    var nextBirthday: Date? { get }
+enum ProfileType {
+    case contactProfile(identifier: String)
+    case storedProfile
 }
 
-extension ProfileProtocol {
+@objc(Profile)
+public class Profile: NSManagedObject {
+    var type: ProfileType = .storedProfile
+    
     var nextBirthday: Date? {
         guard let birthday = birthday else { return nil }
         
@@ -37,18 +37,19 @@ extension ProfileProtocol {
 
         return upcomingBirthday
     }
-}
-
-// Contains contact data imported from the contact app.
-struct ContactProfile: ProfileProtocol {
-    var id = UUID()
-    var contactIdentifier: String
-    var name: String?
-    var birthday: Date?
-    var image: Data?
-}
-
-@objc(StoredProfile)
-public class StoredProfile: NSManagedObject, ProfileProtocol {
-    public var id = UUID()
+    
+    var image: UIImage? {
+        get {
+            guard let imageData = imageData,
+                  let uiImage = UIImage(data: imageData)
+            else { return nil }
+            
+            return uiImage
+        }
+            
+        set {
+            guard let uiImage = newValue else { return }
+            imageData = uiImage.jpegData(compressionQuality: 0.8)
+        }
+    }
 }

@@ -19,34 +19,22 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.scenePhase) var scenePhase
     @EnvironmentObject var profileManager: ProfileManager
-    
-    var profiles: [any ProfileProtocol] {
-        var result = [any ProfileProtocol]()
-        result.append(contentsOf: profileManager.storedProfiles)
-        result.append(contentsOf: profileManager.contactProfiles)
-        
-        // Sort profiles
-        return result.sorted { firstProfile, secondProfile in // Evaluate if input profiles are in increasing order.
-            guard let firstNextBirthday = firstProfile.nextBirthday,
-                  let secondNextBirthday = secondProfile.nextBirthday else { return true }
-            return secondNextBirthday >= firstNextBirthday
-        }
-    }
-    
+
     let birthdayDateFormatter = BirthdayRelativeDateFormatter()
     
-    @State var editProfile: (any ProfileProtocol)? = nil
+    @State var editProfile: Profile? = nil
     @State var showAddProfile = false
-    @State var showEditProfile = false
     
     var body: some View {
         List {
-            ForEach(profiles, id: \.id) { profile in
-                Button(action: { showEditProfile = true }) {
+            ForEach(profileManager.profiles) { profile in
+                Button(action: { editProfile = profile }) {
                     HStack(alignment: .center, spacing: 10) {
-                        getProfileImage(from: profile.image)?
-                            .resizable().scaledToFit().frame(height: 50)
-                            .clipShape(Circle())
+                        if let profileImage = profile.image {
+                            Image(uiImage: profileImage)
+                                .resizable().scaledToFit().frame(height: 50)
+                                .clipShape(Circle())
+                        }
                         
                         Text(getBirthdayCountdown(from: profile))
                             .bold()
@@ -72,21 +60,13 @@ struct ContentView: View {
                 Button(action: { showAddProfile = true }) { Image(systemName: "plus") }
             }
         }
-        .sheet(item: $editProfile) { ProfileView(context: .edit) }
-//        .sheet(isPresented: $showEditProfile) { ProfileView(context: .edit) }
-        .sheet(isPresented: $showAddProfile) { ProfileView(context: .add) }
+        .sheet(item: $editProfile) { ProfileView(profile: $0) }
+        .sheet(isPresented: $showAddProfile) { ProfileView() }
         .navigationBarBackButtonHidden()
         .onChange(of: scenePhase) { if $0 == .active { profileManager.collectProfiles() } }
     }
     
-    func getProfileImage(from data: Data?) -> Image? {
-        guard let data = data,
-              let uiImage = UIImage(data: data)
-        else { return nil }
-        return Image(uiImage: uiImage)
-    }
-    
-    func getBirthdayCountdown<T: ProfileProtocol>(from profile: T) -> String {
+    func getBirthdayCountdown(from profile: Profile) -> String {
         guard let nextBirthday = profile.nextBirthday else { return "NaN" }
         return birthdayDateFormatter.string(for: nextBirthday) ?? "NaN"
     }

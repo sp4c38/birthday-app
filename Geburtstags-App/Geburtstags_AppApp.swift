@@ -43,10 +43,10 @@ class CoreDataManager {
 }
 
 class ProfileManager: ObservableObject {
-    @Published var storedProfiles = [StoredProfile]()
-    @Published var contactProfiles = [ContactProfile]()
+    @Published var profiles = [Profile]()
     
     let managedObjectContext: NSManagedObjectContext
+    let tempManagedObjectContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
     
     init(managedObjectContext: NSManagedObjectContext) {
         self.managedObjectContext = managedObjectContext
@@ -55,10 +55,11 @@ class ProfileManager: ObservableObject {
     
     func collectProfiles() {
         print("Collecting profiles.")
-        storedProfiles = []
-        contactProfiles = []
+        profiles = []
+        
         do {
-            storedProfiles = try managedObjectContext.fetch(StoredProfile.fetchRequest())
+            let storedProfiles = try managedObjectContext.fetch(Profile.fetchRequest())
+            profiles.append(contentsOf: storedProfiles)
         } catch {
             print("Error retrieving stored profiles: \(error).")
         }
@@ -72,16 +73,22 @@ class ProfileManager: ObservableObject {
                       let birthday = Calendar.current.date(from: birthdayDateComponents)
                 else { continue }
                 
-                let newProfile = ContactProfile(
-                    contactIdentifier: contact.identifier,
-                    name: "\(contact.givenName) \(contact.familyName)",
-                    birthday: birthday,
-                    image: contact.imageData
-                )
-                contactProfiles.append(newProfile)
+                let newProfile = Profile(context: tempManagedObjectContext)
+                newProfile.type = .contactProfile(identifier: contact.identifier)
+                newProfile.name = "\(contact.givenName) \(contact.familyName)"
+                newProfile.birthday = birthday
+                newProfile.imageData = contact.imageData
+                
+                profiles.append(newProfile)
             }
         } catch {
             print("Error: \(error)")
+        }
+        
+        profiles.sort { firstProfile, secondProfile in // Evaluate if input profiles are in increasing order.
+            guard let firstNextBirthday = firstProfile.nextBirthday,
+                  let secondNextBirthday = secondProfile.nextBirthday else { return true }
+            return secondNextBirthday >= firstNextBirthday
         }
     }
 }

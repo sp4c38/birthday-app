@@ -23,8 +23,8 @@ struct ProfilePictureView: View {
         VStack(spacing: 30) {
             VStack(spacing: 10) {
                 switch imageState {
-                case .success(let image):
-                    Image(uiImage: image)
+                case .success(let uiImage):
+                    Image(uiImage: uiImage)
                         .resizable().scaledToFit().frame(height: 150)
                         .clipShape(Circle())
                         .shadow(radius: 5)
@@ -93,25 +93,48 @@ struct ProfilePictureView: View {
     }
 }
 
-struct ProfileView: View {
-    enum Context {
-        case add
-        case edit
+fileprivate struct ContactManagedByContactApp: View {
+    var body: some View {
+        VStack(spacing: 30) {
+            Text("Profile is managed via the Contact App")
+                .bold()
+                .font(.title)
+                .multilineTextAlignment(.center)
+            
+            Text("We import the profile details of the corresponding contact from the Contact App. Please change the data inside the Contact App and return to this app.")
+                .font(.body)
+            
+            Spacer()
+        }
+        .padding()
     }
-    
-    let context: Context
-    
+}
+
+struct ProfileView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var profileManager: ProfileManager
     
-    @State var imageState: ProfilePictureView.ImageState = .empty
-    @State var name: String = ""
-    @State var birthday = Date.now
+    let profile: Profile?
+    
+    @State var name: String
+    @State var birthday: Date
+    @State var imageState: ProfilePictureView.ImageState
     
     @State var profileSaveFailed: Bool = false
     @State var showPhotoPicker = false
+    
+    init(profile profileParsed: Profile? = nil) {
+        self.profile = profileParsed
+        _name = State(initialValue: profileParsed?.name ?? "")
+        _birthday = State(initialValue: profileParsed?.birthday ?? Date.now)
+        if let image = profileParsed?.image {
+            _imageState = State(initialValue: .success(image))
+        } else {
+            _imageState = State(initialValue: .empty)
+        }
+    }
     
     var content: some View {
         VStack {
@@ -133,22 +156,14 @@ struct ProfileView: View {
                     }
                 }
                 
-                if context == .edit {
-                    Section {
-                        VStack(spacing: 20) {
-                            Text("🎂 11d 22h 13min 🎂")
-                                .bold()
-                                .font(.system(size: 30))
-                                .frame(maxWidth: .infinity)
-                        }
+                Section {
+                    VStack(spacing: 20) {
+                        Text("🎂 11d 22h 13min 🎂 (Dieser detailierte Counter funktioniert noch nicht)")
+                            .bold()
+                            .font(.system(size: 30))
+                            .frame(maxWidth: .infinity)
                     }
                 }
-            }
-            .navigationTitle(context == .edit ? "Edit profile" : "Add profile")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Save", action: saveProfile) }
-                
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
             }
             .alert("Database Error", isPresented: $profileSaveFailed) {
                 Button("Ok", role: .cancel) { presentationMode.wrappedValue.dismiss() }
@@ -158,7 +173,6 @@ struct ProfileView: View {
         }
     }
     
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -169,7 +183,22 @@ struct ProfileView: View {
                     Color.black
                 }
 
-                content
+                if let profile,
+                   case .contactProfile(_) = profile.type {
+                    ContactManagedByContactApp()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("Understood", action: saveProfile) }
+                        }
+                } else {
+                    content
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("Save", action: saveProfile) }
+                            
+                            ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
+                        
+                        }
+                        .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
+                }
             }
         }
     }
@@ -179,22 +208,29 @@ struct ProfileView: View {
             return
         }
         
-        let profile = StoredProfile(context: managedObjectContext)
+        let profileToSave: Profile
         
+        if let profile = profile {
+            print("Updating profile.")
+            profileToSave = profile
+        } else {
+            print("Saved new profile.")
+            profileToSave = Profile(context: managedObjectContext)
+        }
+            
         switch imageState {
         case .empty, .failure:
-            profile.image = nil
-        case .success(let uIImage):
-            profile.image = uIImage.jpegData(compressionQuality: 0.8)
+            profileToSave.imageData = nil
+        case .success(let uiImage):
+            profileToSave.image = uiImage
         case .loading:
             break
         }
-        profile.name = name
-        profile.birthday = birthday
+        profileToSave.name = name
+        profileToSave.birthday = birthday
         
         do {
             try managedObjectContext.save()
-            print("Saved new profile.")
             profileManager.collectProfiles()
             presentationMode.wrappedValue.dismiss()
         } catch {
@@ -206,7 +242,8 @@ struct ProfileView: View {
 
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        ProfileView(context: .edit)
+//        ProfileView(context: .edit)
+        ContactManagedByContactApp()
         ProfilePictureView(imageState: .constant(.empty))
     }
 }
