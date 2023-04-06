@@ -179,7 +179,7 @@ struct ProfileView: View {
             return
         }
         
-        let profile = Profile(context: managedObjectContext)
+        let profile = StoredProfile(context: managedObjectContext)
         
         switch imageState {
         case .empty, .failure:

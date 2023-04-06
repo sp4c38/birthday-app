@@ -20,14 +20,28 @@ struct ContentView: View {
     @Environment(\.scenePhase) var scenePhase
     @EnvironmentObject var profileManager: ProfileManager
     
+    var profiles: [any ProfileProtocol] {
+        var result = [any ProfileProtocol]()
+        result.append(contentsOf: profileManager.storedProfiles)
+        result.append(contentsOf: profileManager.contactProfiles)
+        
+        // Sort profiles
+        return result.sorted { firstProfile, secondProfile in // Evaluate if input profiles are in increasing order.
+            guard let firstNextBirthday = firstProfile.nextBirthday,
+                  let secondNextBirthday = secondProfile.nextBirthday else { return true }
+            return secondNextBirthday >= firstNextBirthday
+        }
+    }
+    
     let birthdayDateFormatter = BirthdayRelativeDateFormatter()
     
+    @State var editProfile: (any ProfileProtocol)? = nil
     @State var showAddProfile = false
     @State var showEditProfile = false
     
     var body: some View {
         List {
-            ForEach(profileManager.profiles) { profile in
+            ForEach(profiles, id: \.id) { profile in
                 Button(action: { showEditProfile = true }) {
                     HStack(alignment: .center, spacing: 10) {
                         getProfileImage(from: profile.image)?
@@ -40,11 +54,12 @@ struct ContentView: View {
                         
                         Text(profile.name ?? "")
                             .baselineOffset(-3)
+                        
+                        Spacer()
                     }
                     .foregroundColor(.black)
                 }
             }
-            .onDelete(perform: deleteProfile)
         }
         .listStyle(.grouped)
         .navigationTitle("birthdays")
@@ -57,7 +72,8 @@ struct ContentView: View {
                 Button(action: { showAddProfile = true }) { Image(systemName: "plus") }
             }
         }
-        .sheet(isPresented: $showEditProfile) { ProfileView(context: .edit) }
+        .sheet(item: $editProfile) { ProfileView(context: .edit) }
+//        .sheet(isPresented: $showEditProfile) { ProfileView(context: .edit) }
         .sheet(isPresented: $showAddProfile) { ProfileView(context: .add) }
         .navigationBarBackButtonHidden()
         .onChange(of: scenePhase) { if $0 == .active { profileManager.collectProfiles() } }
@@ -70,22 +86,22 @@ struct ContentView: View {
         return Image(uiImage: uiImage)
     }
     
-    func getBirthdayCountdown(from profile: Profile) -> String {
+    func getBirthdayCountdown<T: ProfileProtocol>(from profile: T) -> String {
         guard let nextBirthday = profile.nextBirthday else { return "NaN" }
         return birthdayDateFormatter.string(for: nextBirthday) ?? "NaN"
     }
     
-    func deleteProfile(at indexSet: IndexSet) {
-        for i in indexSet {
-            let profile = profileManager.profiles[i]
-            managedObjectContext.delete(profile)
-        }
-        do {
-            try managedObjectContext.save()
-        } catch {
-            print("Couldn't delete profile: \(error).")
-        }
-    }
+//    func deleteProfile(at indexSet: IndexSet) {
+//        for i in indexSet {
+//            guard let profile = profileManager.profiles[i] as? StoredProfile else { continue }
+//            managedObjectContext.delete(profile)
+//        }
+//        do {
+//            try managedObjectContext.save()
+//        } catch {
+//            print("Couldn't delete profile: \(error).")
+//        }
+//    }
 }
 
 struct ContentView_Previews: PreviewProvider {

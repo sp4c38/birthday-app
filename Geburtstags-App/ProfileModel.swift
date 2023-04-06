@@ -9,8 +9,16 @@
 import Foundation
 import CoreData
 
-@objc(Profile)
-public class Profile: NSManagedObject {
+protocol ProfileProtocol: Identifiable {
+    var id: UUID { get }
+    var name: String? { get }
+    var birthday: Date? { get }
+    var image: Data? { get }
+    
+    var nextBirthday: Date? { get }
+}
+
+extension ProfileProtocol {
     var nextBirthday: Date? {
         guard let birthday = birthday else { return nil }
         
@@ -29,4 +37,18 @@ public class Profile: NSManagedObject {
 
         return upcomingBirthday
     }
+}
+
+// Contains contact data imported from the contact app.
+struct ContactProfile: ProfileProtocol {
+    var id = UUID()
+    var contactIdentifier: String
+    var name: String?
+    var birthday: Date?
+    var image: Data?
+}
+
+@objc(StoredProfile)
+public class StoredProfile: NSManagedObject, ProfileProtocol {
+    public var id = UUID()
 }
