@@ -52,4 +52,12 @@ public class Profile: NSManagedObject {
             imageData = uiImage.jpegData(compressionQuality: 0.8)
         }
     }
+    
+    static func previewProfile(previewContext: NSManagedObjectContext) -> Profile {
+        let profile = Profile(context: previewContext)
+        profile.name = "Test Profile Name"
+        profile.birthday = Date(timeIntervalSince1970: 1138316400)
+        profile.imageData = UIImage(systemName: "arrow.up.doc.on.clipboard")?.jpegData(compressionQuality: 0.8)
+        return profile
+    }
 }

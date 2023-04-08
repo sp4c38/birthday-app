@@ -5,6 +5,7 @@
 //  Created by Léon Becker on 17.10.22.
 //
 
+import CoreData
 import PhotosUI
 import SwiftUI
 
@@ -20,47 +21,45 @@ struct ProfilePictureView: View {
     @State private var imageSelection: PhotosPickerItem? = nil
     
     var body: some View {
-        VStack(spacing: 30) {
-            VStack(spacing: 10) {
-                switch imageState {
-                case .success(let uiImage):
-                    Image(uiImage: uiImage)
-                        .resizable().scaledToFit().frame(height: 150)
-                        .clipShape(Circle())
-                        .shadow(radius: 5)
-                case .failure:
-                    Image(systemName: "person.crop.circle.badge.exclamationmark.fill")
-                        .resizable().scaledToFit().frame(height: 150)
-                        .symbolRenderingMode(.multicolor)
-                        .foregroundColor(.gray)
-                        
-                    Text("Couldn't load image.")
-                        .padding(.top, 2)
-                default:
-                    Image(systemName: "person.circle.fill")
-                        .resizable().scaledToFit().frame(height: 150)
-                        .foregroundColor(.gray)
-                }
-                
-                Button(action: {}) {
-                    switch imageState {
-                    case .empty, .failure:
-                        Text("Add photo")
-                    default:
-                        Text("Edit photo")
-                    }
-                }
-                .buttonStyle(DefaultButtonStyle())
+        VStack(spacing: 10) {
+            switch imageState {
+            case .success(let uiImage):
+                Image(uiImage: uiImage)
+                    .resizable().scaledToFit().frame(height: 150)
+                    .clipShape(Circle())
+                    .shadow(radius: 5)
+            case .failure:
+                Image(systemName: "person.crop.circle.badge.exclamationmark.fill")
+                    .resizable().scaledToFit().frame(height: 150)
+                    .symbolRenderingMode(.multicolor)
+                    .foregroundColor(.gray)
+                    
+                Text("Couldn't load image.")
+                    .padding(.top, 2)
+            default:
+                Image(systemName: "person.circle.fill")
+                    .resizable().scaledToFit().frame(height: 150)
+                    .foregroundColor(.gray)
             }
-            .overlay {
-                PhotosPicker(selection: $imageSelection, matching: .images, photoLibrary: .shared()) {
-                    Color.clear
+            
+            Button(action: {}) {
+                switch imageState {
+                case .empty, .failure:
+                    Text("Add photo")
+                default:
+                    Text("Edit photo")
                 }
-                .onChange(of: imageSelection) { newSelection in
-                    if let imageSelection = imageSelection {
-                        loadTransferable(from: imageSelection)
-                        imageState = .loading
-                    }
+            }
+            .buttonStyle(DefaultButtonStyle())
+        }
+        .overlay {
+            PhotosPicker(selection: $imageSelection, matching: .images, photoLibrary: .shared()) {
+                Color.clear
+            }
+            .onChange(of: imageSelection) { newSelection in
+                if let imageSelection = imageSelection {
+                    loadTransferable(from: imageSelection)
+                    imageState = .loading
                 }
             }
         }
@@ -95,13 +94,13 @@ struct ProfilePictureView: View {
 
 fileprivate struct ContactManagedByContactApp: View {
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(alignment: .leading, spacing: 30) {
             Text("Profile is managed via the Contact App")
                 .bold()
                 .font(.title)
                 .multilineTextAlignment(.center)
             
-            Text("We import the profile details of the corresponding contact from the Contact App. Please change the data inside the Contact App and return to this app.")
+            Text("We import the profile details of the corresponding contact from the Contact App.\n\nPlease change the data inside the Contact App and return to this app.")
                 .font(.body)
             
             Spacer()
@@ -122,7 +121,7 @@ struct ProfileView: View {
     @State var birthday: Date
     @State var imageState: ProfilePictureView.ImageState
     
-    @State var profileSaveFailed: Bool = false
+    @State var databaseSaveFailed: Bool = false
     @State var showPhotoPicker = false
     
     init(profile profileParsed: Profile? = nil) {
@@ -141,7 +140,6 @@ struct ProfileView: View {
             ProfilePictureView(imageState: $imageState)
             
             Form {
-                
                 Section {
                     TextField("Name", text: $name)
                     
@@ -164,11 +162,23 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
+                
+                if profile != nil {
+                    Button(action: deleteProfile) {
+                        Text("Delete profile")
+                            .padding(5)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.61, green: 0.14, blue: 0.11, opacity: 1.0))
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                }
             }
-            .alert("Database Error", isPresented: $profileSaveFailed) {
+            .alert("Database Error", isPresented: $databaseSaveFailed) {
                 Button("Ok", role: .cancel) { presentationMode.wrappedValue.dismiss() }
             } message: {
-                Text("Couldn't save new profile.")
+                Text("Couldn't perform this operation.")
             }
         }
     }
@@ -187,7 +197,7 @@ struct ProfileView: View {
                    case .contactProfile(_) = profile.type {
                     ContactManagedByContactApp()
                         .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("Understood", action: saveProfile) }
+                            ToolbarItem(placement: .confirmationAction) { Button("Understood", action: {  presentationMode.wrappedValue.dismiss() }) }
                         }
                 } else {
                     content
@@ -234,15 +244,30 @@ struct ProfileView: View {
             profileManager.collectProfiles()
             presentationMode.wrappedValue.dismiss()
         } catch {
-            profileSaveFailed = true
-            print("Failed saving new profile: \(error as NSError).")
+            print("Failed saving new profile: \(error).")
+            databaseSaveFailed = true
+        }
+    }
+    
+    func deleteProfile() {
+        guard let profile = profile else { return }
+        do {
+            managedObjectContext.delete(profile)
+            try managedObjectContext.save()
+            profileManager.collectProfiles()
+            presentationMode.wrappedValue.dismiss()
+        } catch {
+            print("Failed deleting profile: \(error).")
+            databaseSaveFailed = true
         }
     }
 }
 
 struct ProfileView_Previews: PreviewProvider {
+    static var previewContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+    
     static var previews: some View {
-//        ProfileView(context: .edit)
+        ProfileView(profile: Profile.previewProfile(previewContext: previewContext))
         ContactManagedByContactApp()
         ProfilePictureView(imageState: .constant(.empty))
     }
