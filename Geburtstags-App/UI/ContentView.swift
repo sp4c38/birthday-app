@@ -36,11 +36,11 @@ struct ContentView: View {
                                 .clipShape(Circle())
                         }
                         
-                        Text(getBirthdayCountdown(from: profile))
+                        Text(birthdayDateFormatter.short(date: profile.nextBirthday))
                             .bold()
                             .font(.title)
                         
-                        Text(profile.name ?? "")
+                        Text(profile.name)
                             .baselineOffset(-3)
                         
                         Spacer()
@@ -61,27 +61,10 @@ struct ContentView: View {
             }
         }
         .sheet(item: $editProfile) { ProfileView(profile: $0) }
-        .sheet(isPresented: $showAddProfile) { ProfileView() }
+        .sheet(isPresented: $showAddProfile) { ModifyProfileView() }
         .navigationBarBackButtonHidden()
         .onChange(of: scenePhase) { if $0 == .active { profileManager.collectProfiles() } }
     }
-    
-    func getBirthdayCountdown(from profile: Profile) -> String {
-        guard let nextBirthday = profile.nextBirthday else { return "NaN" }
-        return birthdayDateFormatter.string(for: nextBirthday) ?? "NaN"
-    }
-    
-//    func deleteProfile(at indexSet: IndexSet) {
-//        for i in indexSet {
-//            guard let profile = profileManager.profiles[i] as? StoredProfile else { continue }
-//            managedObjectContext.delete(profile)
-//        }
-//        do {
-//            try managedObjectContext.save()
-//        } catch {
-//            print("Couldn't delete profile: \(error).")
-//        }
-//    }
 }
 
 struct ContentView_Previews: PreviewProvider {

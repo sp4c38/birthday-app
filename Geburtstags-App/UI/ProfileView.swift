@@ -109,7 +109,7 @@ fileprivate struct ContactManagedByContactApp: View {
     }
 }
 
-struct ProfileView: View {
+struct ModifyProfileView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.presentationMode) var presentationMode
@@ -218,26 +218,27 @@ struct ProfileView: View {
             return
         }
         
-        let profileToSave: Profile
+        var uiImage: UIImage?
+        switch imageState {
+        case .success(let selectedUIImage):
+            uiImage = selectedUIImage
+        default:
+            uiImage = nil
+        }
         
         if let profile = profile {
             print("Updating profile.")
-            profileToSave = profile
+            profile.name = name
+            profile.birthday = birthday
+            profile.image = uiImage
         } else {
             print("Saved new profile.")
-            profileToSave = Profile(context: managedObjectContext)
+            _ = Profile(context: managedObjectContext,
+                        name: name,
+                        birthday: birthday,
+                        image: uiImage,
+                        type: .storedProfile)
         }
-            
-        switch imageState {
-        case .empty, .failure:
-            profileToSave.imageData = nil
-        case .success(let uiImage):
-            profileToSave.image = uiImage
-        case .loading:
-            break
-        }
-        profileToSave.name = name
-        profileToSave.birthday = birthday
         
         do {
             try managedObjectContext.save()
@@ -263,11 +264,38 @@ struct ProfileView: View {
     }
 }
 
+struct ProfileView: View {
+    let profile: Profile
+    let formatter = BirthdayRelativeDateFormatter()
+    let displayComponents: [Calendar.Component] = [.month, .day, .hour, .minute, .second]
+    
+    init(profile: Profile) {
+        self.profile = profile
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                ForEach(displayComponents, id: \.self) { component in
+                    let difference = formatter.difference(date: profile.nextBirthday, component: component)
+                    
+                    HStack {
+                        Text(difference.value.description)
+                        Text(difference.unit)
+                    }
+                }
+            }
+            .navigationTitle(profile.name)
+        }
+    }
+}
+
 struct ProfileView_Previews: PreviewProvider {
     static var previewContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
     
     static var previews: some View {
         ProfileView(profile: Profile.previewProfile(previewContext: previewContext))
+        ModifyProfileView(profile: Profile.previewProfile(previewContext: previewContext))
         ContactManagedByContactApp()
         ProfilePictureView(imageState: .constant(.empty))
     }

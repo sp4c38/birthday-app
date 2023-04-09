@@ -7,10 +7,8 @@
 
 import Foundation
 
-class BirthdayRelativeDateFormatter: Formatter {
-    override func string(for obj: Any?) -> String? {
-        guard let date = obj as? Date else { return nil }
-        
+class BirthdayRelativeDateFormatter {
+    func short(date: Date) -> String {
         let calendar = Calendar.current
         let now = Date()
         let dateDifference = calendar.dateComponents([.day, .hour, .minute, .second], from: now, to: date)
@@ -31,6 +29,29 @@ class BirthdayRelativeDateFormatter: Formatter {
             return "\(minutes) minutes"
         } else {
             return "\(seconds) seconds"
+        }
+    }
+    
+    func difference(date: Date, component: Calendar.Component) -> (value: Int, unit: String) {
+        let calendar = Calendar.current
+        let now = Date()
+        let dateDifference = calendar.dateComponents([component], from: now, to: date)
+        let difference = dateDifference.value(for: component)!
+        switch component {
+        case .month:
+            return (difference, difference != 1 ? "months" : "month")
+        case .day:
+            return (difference, difference != 1 ? "days" : "day")
+        case .hour:
+            return (difference, difference != 1 ? "hours" : "hour")
+        case .minute:
+            return (difference, difference != 1 ? "minutes" : "minute")
+        case .second:
+            return (difference, difference != 1 ? "seconds" : "second")
+        case .nanosecond:
+            return (difference, difference != 1 ? "nanoseconds" : "nanosecond")
+        default:
+            return (0, "NaN")
         }
     }
 }
