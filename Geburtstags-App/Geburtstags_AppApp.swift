@@ -46,10 +46,12 @@ class ProfileManager: ObservableObject {
     @Published var profiles = [Profile]()
     
     let managedObjectContext: NSManagedObjectContext
-    let tempManagedObjectContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+    let tempManagedObjectContext: NSManagedObjectContext
     
     init(managedObjectContext: NSManagedObjectContext) {
         self.managedObjectContext = managedObjectContext
+        self.tempManagedObjectContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+        self.tempManagedObjectContext.parent = managedObjectContext
         collectProfiles()
     }
     
@@ -73,23 +75,19 @@ class ProfileManager: ObservableObject {
                       let birthday = Calendar.current.date(from: birthdayDateComponents)
                 else { continue }
                 
-                let newProfile = Profile(context: tempManagedObjectContext)
-                newProfile.type = .contactProfile(identifier: contact.identifier)
-                newProfile.name = "\(contact.givenName) \(contact.familyName)"
-                newProfile.birthday = birthday
-                newProfile.imageData = contact.imageData
-                
+                let newProfile = Profile(context: tempManagedObjectContext,
+                                         name: "\(contact.givenName) \(contact.familyName)",
+                                         birthday: birthday,
+                                         image: nil,
+                                         imageData: contact.imageData,
+                                         type: .contactProfile(identifier: contact.identifier))
                 profiles.append(newProfile)
             }
         } catch {
             print("Error: \(error)")
         }
         
-        profiles.sort { firstProfile, secondProfile in // Evaluate if input profiles are in increasing order.
-            guard let firstNextBirthday = firstProfile.nextBirthday,
-                  let secondNextBirthday = secondProfile.nextBirthday else { return true }
-            return secondNextBirthday >= firstNextBirthday
-        }
+        profiles.sort { $1.nextBirthday >= $0.nextBirthday } // Evaluate if input profiles are in increasing order.
     }
 }
 

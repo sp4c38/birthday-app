@@ -17,11 +17,16 @@ enum ProfileType {
 
 @objc(Profile)
 public class Profile: NSManagedObject {
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<Profile> {
+        return NSFetchRequest<Profile>(entityName: "Profile")
+    }
+    
+    @NSManaged public var name: String
+    @NSManaged public var birthday: Date
+    @NSManaged public var imageData: Data?
     var type: ProfileType = .storedProfile
     
-    var nextBirthday: Date? {
-        guard let birthday = birthday else { return nil }
-        
+    var nextBirthday: Date {
         let calendar = Calendar.current
         let midnightToday = calendar.startOfDay(for: Date())
         let currentYear = calendar.component(.year, from: midnightToday)
@@ -48,16 +53,51 @@ public class Profile: NSManagedObject {
         }
             
         set {
-            guard let uiImage = newValue else { return }
+            guard let uiImage = newValue else {
+                imageData = nil
+                return
+            }
             imageData = uiImage.jpegData(compressionQuality: 0.8)
         }
     }
     
     static func previewProfile(previewContext: NSManagedObjectContext) -> Profile {
-        let profile = Profile(context: previewContext)
-        profile.name = "Test Profile Name"
-        profile.birthday = Date(timeIntervalSince1970: 1138316400)
-        profile.imageData = UIImage(systemName: "arrow.up.doc.on.clipboard")?.jpegData(compressionQuality: 0.8)
-        return profile
+        Profile(context: previewContext,
+                              name: "Test Profile Name",
+                              birthday: Date(timeIntervalSince1970: 1138316400),
+                              image: UIImage(systemName: "arrow.up.doc.on.clipboard"),
+                              type: .storedProfile
+        )
     }
+
+    // To avoid unneeded optional values these steps were followed: https://www.jessesquires.com/blog/2022/01/26/core-data-optionals/
+    init(context: NSManagedObjectContext, name: String, birthday: Date, image: UIImage?, imageData: Data? = nil, type: ProfileType) {
+        let entity = NSEntityDescription.entity(forEntityName: "Profile", in: context)!
+         
+        super.init(entity: entity, insertInto: context)
+        self.name = name
+        self.birthday = birthday
+        self.image = image
+        self.imageData = imageData
+        self.type = type
+    }
+
+    @objc
+    override private init(entity: NSEntityDescription, insertInto context: NSManagedObjectContext?) {
+        super.init(entity: entity, insertInto: context)
+    }
+    
+    @available(*, unavailable)
+    public init() {
+        fatalError("\(#function) not implemented")
+    }
+    
+    @available(*, unavailable)
+    public convenience init(context: NSManagedObjectContext) {
+        fatalError("\(#function) not implemented")
+    }
+}
+
+extension Profile : Identifiable {
+
 }
