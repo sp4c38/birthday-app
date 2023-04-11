@@ -32,26 +32,32 @@ class BirthdayRelativeDateFormatter {
         }
     }
     
-    func difference(date: Date, component: Calendar.Component) -> (value: Int, unit: String) {
+    func difference(date: Date, component: Calendar.Component) -> (value: String, unit: String) {
+        let defaultReturn = ("0", "NaN")
+        
         let calendar = Calendar.current
         let now = Date()
         let dateDifference = calendar.dateComponents([component], from: now, to: date)
         let difference = dateDifference.value(for: component)!
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        guard let differenceString = numberFormatter.string(from: NSNumber(integerLiteral: difference)) else { return defaultReturn }
+        
         switch component {
         case .month:
-            return (difference, difference != 1 ? "months" : "month")
+            return (differenceString, difference != 1 ? "months" : "month")
         case .day:
-            return (difference, difference != 1 ? "days" : "day")
+            return (differenceString, difference != 1 ? "days" : "day")
         case .hour:
-            return (difference, difference != 1 ? "hours" : "hour")
+            return (differenceString, difference != 1 ? "hours" : "hour")
         case .minute:
-            return (difference, difference != 1 ? "minutes" : "minute")
+            return (differenceString, difference != 1 ? "minutes" : "minute")
         case .second:
-            return (difference, difference != 1 ? "seconds" : "second")
+            return (differenceString, difference != 1 ? "seconds" : "second")
         case .nanosecond:
-            return (difference, difference != 1 ? "nanoseconds" : "nanosecond")
+            return (differenceString, difference != 1 ? "nanoseconds" : "nanosecond")
         default:
-            return (0, "NaN")
+            return defaultReturn
         }
     }
 }

@@ -137,9 +137,11 @@ struct ModifyProfileView: View {
     
     var content: some View {
         VStack {
-            ProfilePictureView(imageState: $imageState)
-            
             Form {
+                ProfilePictureView(imageState: $imageState)
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+            
                 Section {
                     TextField("Name", text: $name)
                     
@@ -151,15 +153,6 @@ struct ModifyProfileView: View {
                             selection: $birthday,
                             in: ...Date.now,
                             displayedComponents: [.date])
-                    }
-                }
-                
-                Section {
-                    VStack(spacing: 20) {
-                        Text("🎂 11d 22h 13min 🎂 (Dieser detailierte Counter funktioniert noch nicht)")
-                            .bold()
-                            .font(.system(size: 30))
-                            .frame(maxWidth: .infinity)
                     }
                 }
                 
@@ -185,14 +178,7 @@ struct ModifyProfileView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                if colorScheme == .light {
-                    Color(red: 0.95, green: 0.95, blue: 0.97)
-                        .ignoresSafeArea()
-                } else {
-                    Color.black
-                }
-
+            VStack {
                 if let profile,
                    case .contactProfile(_) = profile.type {
                     ContactManagedByContactApp()
@@ -204,12 +190,13 @@ struct ModifyProfileView: View {
                         .toolbar {
                             ToolbarItem(placement: .confirmationAction) { Button("Save", action: saveProfile) }
                             
-                            ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
-                        
+                            if profile == nil {
+                                ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
+                            }
                         }
-                        .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
                 }
             }
+            .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
         }
     }
     
@@ -265,9 +252,16 @@ struct ModifyProfileView: View {
 }
 
 struct ProfileView: View {
+    @Environment(\.presentationMode) var presentationMode
     let profile: Profile
     let formatter = BirthdayRelativeDateFormatter()
     let displayComponents: [Calendar.Component] = [.month, .day, .hour, .minute, .second]
+    @State var showEditProfile = false
+    
+    @State var selectedComponent: Calendar.Component = .day
+    var difference: (value: String, unit: String) {
+        return formatter.difference(date: profile.nextBirthday, component: selectedComponent)
+    }
     
     init(profile: Profile) {
         self.profile = profile
@@ -275,28 +269,62 @@ struct ProfileView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
-                ForEach(displayComponents, id: \.self) { component in
-                    let difference = formatter.difference(date: profile.nextBirthday, component: component)
-                    
-                    HStack {
-                        Text(difference.value.description)
-                        Text(difference.unit)
-                    }
+            VStack(alignment: .leading) {
+                Text("Time until birthday:")
+                    .font(.title2)
+                
+                Picker("Test", selection: $selectedComponent) {
+                    Text("Months").tag(Calendar.Component.month)
+                    Text("Days").tag(Calendar.Component.day)
+                    Text("Hours").tag(Calendar.Component.hour)
+                    Text("Minutes").tag(Calendar.Component.minute)
+                    Text("Seconds").tag(Calendar.Component.second)
                 }
+                .pickerStyle(SegmentedPickerStyle())
+                
+                HStack(alignment: .center) {
+                    Text(difference.value.description)
+                        .bold()
+                        .font(.title)
+                        .textSelection(.enabled)
+                        .padding(5)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.black, lineWidth: 1)
+                        }
+
+                    Text(difference.unit)
+                        .baselineOffset(-6)
+                }
+                
+                Spacer()
+                
+                Button(action: { showEditProfile = true }) {
+                    Text("Edit profile")
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                }
+                .buttonStyle(BorderedProminentButtonStyle())
             }
             .navigationTitle(profile.name)
+            .padding()
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Done", action: { presentationMode.wrappedValue.dismiss() }) }
+            }
+            .navigationDestination(isPresented: $showEditProfile) {
+                ModifyProfileView(profile: profile)
+            }
         }
     }
 }
 
 struct ProfileView_Previews: PreviewProvider {
-    static var previewContext = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+    static var previewContext = CoreDataManager()
     
     static var previews: some View {
-        ProfileView(profile: Profile.previewProfile(previewContext: previewContext))
-        ModifyProfileView(profile: Profile.previewProfile(previewContext: previewContext))
-        ContactManagedByContactApp()
-        ProfilePictureView(imageState: .constant(.empty))
+        ProfileView(profile: Profile.previewProfile(previewContext: previewContext.container.viewContext))
+        ModifyProfileView(profile: Profile.previewProfile(previewContext: previewContext.container.viewContext))
+//        ContactManagedByContactApp()
+//        ProfilePictureView(imageState: .constant(.empty))
     }
 }
