@@ -116,15 +116,15 @@ struct ModifyProfileView: View {
     @EnvironmentObject var profileManager: ProfileManager
     
     let profile: Profile?
-    
     @State var name: String
     @State var birthday: Date
     @State var imageState: ProfilePictureView.ImageState
     
+    @Binding var profileWasDeleted: Bool
     @State var databaseSaveFailed: Bool = false
     @State var showPhotoPicker = false
     
-    init(profile profileParsed: Profile? = nil) {
+    init(profile profileParsed: Profile? = nil, profileWasDeleted: Binding<Bool> = .constant(false)) {
         self.profile = profileParsed
         _name = State(initialValue: profileParsed?.name ?? "")
         _birthday = State(initialValue: profileParsed?.birthday ?? Date.now)
@@ -133,6 +133,7 @@ struct ModifyProfileView: View {
         } else {
             _imageState = State(initialValue: .empty)
         }
+        self._profileWasDeleted = profileWasDeleted
     }
     
     var content: some View {
@@ -194,9 +195,9 @@ struct ModifyProfileView: View {
                                 ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
                             }
                         }
+                        .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
                 }
             }
-            .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
         }
     }
     
@@ -239,80 +240,106 @@ struct ModifyProfileView: View {
     
     func deleteProfile() {
         guard let profile = profile else { return }
-        do {
-            managedObjectContext.delete(profile)
-            try managedObjectContext.save()
-            profileManager.collectProfiles()
-            presentationMode.wrappedValue.dismiss()
-        } catch {
-            print("Failed deleting profile: \(error).")
-            databaseSaveFailed = true
-        }
+        managedObjectContext.delete(profile)
+        profileWasDeleted = true
+        profileManager.collectProfiles()
+        presentationMode.wrappedValue.dismiss()
     }
 }
 
 struct ProfileView: View {
     @Environment(\.presentationMode) var presentationMode
-    let profile: Profile
+    @Environment(\.managedObjectContext) var managedObjectContext
+    @ObservedObject var profile: Profile
     let formatter = BirthdayRelativeDateFormatter()
     let displayComponents: [Calendar.Component] = [.month, .day, .hour, .minute, .second]
     @State var showEditProfile = false
+    @State var profileWasDeleted = false
+    @State var databaseSaveFailed = false
     
     @State var selectedComponent: Calendar.Component = .day
     var difference: (value: String, unit: String) {
         return formatter.difference(date: profile.nextBirthday, component: selectedComponent)
     }
     
-    init(profile: Profile) {
-        self.profile = profile
-    }
-    
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading) {
-                Text("Time until birthday:")
-                    .font(.title2)
-                
-                Picker("Test", selection: $selectedComponent) {
-                    Text("Months").tag(Calendar.Component.month)
-                    Text("Days").tag(Calendar.Component.day)
-                    Text("Hours").tag(Calendar.Component.hour)
-                    Text("Minutes").tag(Calendar.Component.minute)
-                    Text("Seconds").tag(Calendar.Component.second)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                
-                HStack(alignment: .center) {
-                    Text(difference.value.description)
-                        .bold()
-                        .font(.title)
-                        .textSelection(.enabled)
-                        .padding(5)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.black, lineWidth: 1)
+            TimelineView(.periodic(from: Date(), by: 1)) { _ in
+                VStack(alignment: .leading) {
+                    Text("Time until birthday:")
+                        .font(.title2)
+                    
+                    Picker("Test", selection: $selectedComponent) {
+                        Text("Months").tag(Calendar.Component.month)
+                        Text("Days").tag(Calendar.Component.day)
+                        Text("Hours").tag(Calendar.Component.hour)
+                        Text("Minutes").tag(Calendar.Component.minute)
+                        Text("Seconds").tag(Calendar.Component.second)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.bottom, 10)
+                    
+                    HStack(alignment: .center) {
+                        Text(difference.value.description)
+                            .bold()
+                            .font(.title)
+                            .textSelection(.enabled)
+                            .padding(5)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.black, lineWidth: 1)
+                            }
+                        
+                        Text(difference.unit)
+                            .baselineOffset(-6)
+                    }
+                    
+                    Text("... time until birthday:")
+                        .font(.title2)
+                    
+                    ForEach(formatter.difference(date: profile.nextBirthday), id: \.unit) { difference in
+                        HStack(alignment: .center) {
+                            Text(difference.value)
+                                .bold()
+                                .font(.title)
+                            
+                            Text(difference.unit)
+                                .baselineOffset(-4)
                         }
-
-                    Text(difference.unit)
-                        .baselineOffset(-6)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: { showEditProfile = true }) {
+                        Text("Edit profile")
+                            .frame(maxWidth: .infinity)
+                            .padding(8)
+                    }
+                    .buttonStyle(BorderedProminentButtonStyle())
                 }
-                
-                Spacer()
-                
-                Button(action: { showEditProfile = true }) {
-                    Text("Edit profile")
-                        .frame(maxWidth: .infinity)
-                        .padding(8)
+                .navigationTitle(profile.name)
+                .padding()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done", action: { presentationMode.wrappedValue.dismiss() }) }
                 }
-                .buttonStyle(BorderedProminentButtonStyle())
-            }
-            .navigationTitle(profile.name)
-            .padding()
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done", action: { presentationMode.wrappedValue.dismiss() }) }
-            }
-            .navigationDestination(isPresented: $showEditProfile) {
-                ModifyProfileView(profile: profile)
+                .sheet(isPresented: $showEditProfile, onDismiss: {
+                    if profileWasDeleted {
+                        presentationMode.wrappedValue.dismiss()
+                        do {
+                            try managedObjectContext.save()
+                        } catch {
+                            print("Failed deleting profile: \(error).")
+                            databaseSaveFailed = true
+                        }
+                    }
+                }) {
+                    ModifyProfileView(profile: profile, profileWasDeleted: $profileWasDeleted)
+                }
+                .alert("Database Error", isPresented: $databaseSaveFailed) {
+                    Button("Ok", role: .cancel) { presentationMode.wrappedValue.dismiss() }
+                } message: {
+                    Text("Couldn't perform this operation.")
+                }
             }
         }
     }

@@ -22,13 +22,13 @@ class BirthdayRelativeDateFormatter {
         if days <= 0 && hours <= 0 && minutes <= 0 && seconds <= 0 {
             return "🥳 Happy Birthday"
         } else if days > 2 {
-            return "\(days) days"
+            return "\(days) \(getUnitName(for: .day, value: days))"
         } else if hours > 2 {
-            return "\(hours) hours"
+            return "\(hours) \(getUnitName(for: .hour, value: hours))"
         } else if minutes > 2 {
-            return "\(minutes) minutes"
+            return "\(minutes) \(getUnitName(for: .minute, value: minutes))"
         } else {
-            return "\(seconds) seconds"
+            return "\(seconds) \(getUnitName(for: .second, value: seconds))"
         }
     }
     
@@ -45,19 +45,52 @@ class BirthdayRelativeDateFormatter {
         
         switch component {
         case .month:
-            return (differenceString, difference != 1 ? "months" : "month")
+            return (differenceString, getUnitName(for: .month, value: difference))
         case .day:
-            return (differenceString, difference != 1 ? "days" : "day")
+            return (differenceString, getUnitName(for: .day, value: difference))
         case .hour:
-            return (differenceString, difference != 1 ? "hours" : "hour")
+            return (differenceString, getUnitName(for: .hour, value: difference))
         case .minute:
-            return (differenceString, difference != 1 ? "minutes" : "minute")
+            return (differenceString, getUnitName(for: .minute, value: difference))
         case .second:
-            return (differenceString, difference != 1 ? "seconds" : "second")
-        case .nanosecond:
-            return (differenceString, difference != 1 ? "nanoseconds" : "nanosecond")
+            return (differenceString, getUnitName(for: .second, value: difference))
         default:
             return defaultReturn
+        }
+    }
+    
+    func difference(date: Date) -> [(value: String, unit: String)] {
+        let calendar = Calendar.current
+        let now = Date()
+        let collectComponents: [Calendar.Component] = [.month, .day, .hour, .minute, .second]
+        let dateDifference = calendar.dateComponents(Set(collectComponents), from: now, to: date)
+        
+        var result = [(value: String, unit: String)]()
+        for component in collectComponents {
+            let value = dateDifference.value(for: component)!
+            result.append(
+                (value: "\(value)", unit: getUnitName(for: component, value: value))
+            )
+        }
+        return result
+    }
+    
+    func getUnitName(for component: Calendar.Component, value: Int) -> String {
+        switch component {
+        case .month:
+            return value != 1 ? "months" : "month"
+        case .day:
+            return value != 1 ? "days" : "day"
+        case .hour:
+            return value != 1 ? "hours" : "hour"
+        case .minute:
+            return value != 1 ? "minutes" : "minute"
+        case .second:
+            return value != 1 ? "seconds" : "second"
+        case .nanosecond:
+            return value != 1 ? "nanoseconds" : "nanosecond"
+        default:
+            return "NaN"
         }
     }
 }

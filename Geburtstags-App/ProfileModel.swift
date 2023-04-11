@@ -30,7 +30,6 @@ public class Profile: NSManagedObject {
         let calendar = Calendar.current
         let midnightToday = calendar.startOfDay(for: Date())
         let currentYear = calendar.component(.year, from: midnightToday)
-
         var components = calendar.dateComponents([.year, .month, .day], from: birthday)
         components.year = currentYear
         var upcomingBirthday = calendar.date(from: components)! // The upcoming birthday.
