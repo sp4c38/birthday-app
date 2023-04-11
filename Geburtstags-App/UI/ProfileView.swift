@@ -266,7 +266,7 @@ struct ProfileView: View {
         NavigationStack {
             TimelineView(.periodic(from: Date(), by: 1)) { _ in
                 VStack(alignment: .leading) {
-                    Text("Time until birthday:")
+                    Text("One-element time until birthday:")
                         .font(.title2)
                     
                     Picker("Test", selection: $selectedComponent) {
@@ -294,7 +294,7 @@ struct ProfileView: View {
                             .baselineOffset(-6)
                     }
                     
-                    Text("... time until birthday:")
+                    Text("Multi-element time until birthday:")
                         .font(.title2)
                     
                     ForEach(formatter.difference(date: profile.nextBirthday), id: \.unit) { difference in
