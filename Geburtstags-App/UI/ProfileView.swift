@@ -265,60 +265,60 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             TimelineView(.periodic(from: Date(), by: 1)) { _ in
-                VStack(alignment: .leading) {
-                    Text("One-element time until birthday:")
-                        .font(.title2)
-                    
-                    Picker("Test", selection: $selectedComponent) {
-                        Text("Months").tag(Calendar.Component.month)
-                        Text("Days").tag(Calendar.Component.day)
-                        Text("Hours").tag(Calendar.Component.hour)
-                        Text("Minutes").tag(Calendar.Component.minute)
-                        Text("Seconds").tag(Calendar.Component.second)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding(.bottom, 10)
-                    
-                    HStack(alignment: .center) {
-                        Text(difference.value.description)
-                            .bold()
-                            .font(.title)
-                            .textSelection(.enabled)
-                            .padding(5)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.black, lineWidth: 1)
+                Form {
+                    Section {
+                        VStack {
+                            Picker("Test", selection: $selectedComponent) {
+                                Text("Months").tag(Calendar.Component.month)
+                                Text("Weeks").tag(Calendar.Component.weekOfYear)
+                                Text("Days").tag(Calendar.Component.day)
+                                Text("Hours").tag(Calendar.Component.hour)
+                                Text("Mins").tag(Calendar.Component.minute)
                             }
-                        
-                        Text(difference.unit)
-                            .baselineOffset(-6)
-                    }
-                    
-                    Text("Multi-element time until birthday:")
-                        .font(.title2)
-                    
-                    ForEach(formatter.difference(date: profile.nextBirthday), id: \.unit) { difference in
-                        HStack(alignment: .center) {
-                            Text(difference.value)
-                                .bold()
-                                .font(.title)
+                            .pickerStyle(SegmentedPickerStyle())
+                            .padding(.bottom, 10)
                             
-                            Text(difference.unit)
-                                .baselineOffset(-4)
+                            VStack {
+                                Text(difference.value.description)
+                                    .bold()
+                                    .font(.title)
+                                    .textSelection(.enabled)
+                                
+                                Text(difference.unit)
+                                    .baselineOffset(-6)
+                            }
                         }
+                    } header: {
+                        HStack {
+                            Image(systemName: "smallcircle.filled.circle")
+                            Text("Single-element")
+                        }
+                        .font(.body)
+                        .padding(.bottom, 5)
                     }
                     
-                    Spacer()
-                    
-                    Button(action: { showEditProfile = true }) {
-                        Text("Edit profile")
-                            .frame(maxWidth: .infinity)
-                            .padding(8)
+                    Section {
+                        ForEach(formatter.difference(date: profile.nextBirthday), id: \.unit) { difference in
+                            HStack(alignment: .center) {
+                                Text(difference.value)
+                                    .bold()
+                                    .font(.title)
+                                
+                                Text(difference.unit)
+                                    .baselineOffset(-4)
+                            }
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "point.3.filled.connected.trianglepath.dotted")
+                            Text("Multi-element")
+                        }
+                        .font(.body)
+                        .padding(.bottom, 5)
                     }
-                    .buttonStyle(BorderedProminentButtonStyle())
                 }
+                .scrollDisabled(true)
                 .navigationTitle(profile.name)
-                .padding()
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) { Button("Done", action: { presentationMode.wrappedValue.dismiss() }) }
                 }
@@ -340,7 +340,16 @@ struct ProfileView: View {
                 } message: {
                     Text("Couldn't perform this operation.")
                 }
+                
+                Button(action: { showEditProfile = true }) {
+                    Text("Edit profile")
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                }
+                .buttonStyle(BorderedProminentButtonStyle())
+                .padding([.leading, .trailing])
             }
+            .background(Color(red: 0.95, green: 0.95, blue: 0.97))
         }
     }
 }
@@ -350,7 +359,7 @@ struct ProfileView_Previews: PreviewProvider {
     
     static var previews: some View {
         ProfileView(profile: Profile.previewProfile(previewContext: previewContext.container.viewContext))
-        ModifyProfileView(profile: Profile.previewProfile(previewContext: previewContext.container.viewContext))
+//        ModifyProfileView(profile: Profile.previewProfile(previewContext: previewContext.container.viewContext))
 //        ContactManagedByContactApp()
 //        ProfilePictureView(imageState: .constant(.empty))
     }

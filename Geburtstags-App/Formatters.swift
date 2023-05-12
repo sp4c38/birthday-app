@@ -46,6 +46,8 @@ class BirthdayRelativeDateFormatter {
         switch component {
         case .month:
             return (differenceString, getUnitName(for: .month, value: difference))
+        case .weekOfYear:
+            return (differenceString, getUnitName(for: .weekOfYear, value: difference))
         case .day:
             return (differenceString, getUnitName(for: .day, value: difference))
         case .hour:
@@ -62,7 +64,7 @@ class BirthdayRelativeDateFormatter {
     func difference(date: Date) -> [(value: String, unit: String)] {
         let calendar = Calendar.current
         let now = Date()
-        let collectComponents: [Calendar.Component] = [.month, .day, .hour, .minute, .second]
+        let collectComponents: [Calendar.Component] = [.month, .weekOfYear, .day, .hour, .minute, .second]
         let dateDifference = calendar.dateComponents(Set(collectComponents), from: now, to: date)
         
         var result = [(value: String, unit: String)]()
@@ -79,6 +81,8 @@ class BirthdayRelativeDateFormatter {
         switch component {
         case .month:
             return value != 1 ? "months" : "month"
+        case .weekOfYear:
+            return value != 1 ? "weeks" : "week"
         case .day:
             return value != 1 ? "days" : "day"
         case .hour:
