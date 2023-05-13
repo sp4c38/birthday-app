@@ -293,7 +293,6 @@ struct ProfileView: View {
                             Image(systemName: "smallcircle.filled.circle")
                             Text("Single-element")
                         }
-                        .font(.body)
                         .padding(.bottom, 5)
                     }
                     
@@ -313,11 +312,9 @@ struct ProfileView: View {
                             Image(systemName: "point.3.filled.connected.trianglepath.dotted")
                             Text("Multi-element")
                         }
-                        .font(.body)
                         .padding(.bottom, 5)
                     }
                 }
-                .scrollDisabled(true)
                 .navigationTitle(profile.name)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) { Button("Done", action: { presentationMode.wrappedValue.dismiss() }) }

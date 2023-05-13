@@ -67,7 +67,7 @@ class ProfileManager: ObservableObject {
         }
         
         let store = CNContactStore()
-        let keysToFetch = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactBirthdayKey, CNContactImageDataKey] as [CNKeyDescriptor]
+        let keysToFetch = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactBirthdayKey, CNContactThumbnailImageDataKey] as [CNKeyDescriptor]
         do {
             let contacts = try store.unifiedContacts(matching: NSPredicate(value: true), keysToFetch: keysToFetch)
             for contact in contacts {
@@ -79,7 +79,7 @@ class ProfileManager: ObservableObject {
                                          name: "\(contact.givenName) \(contact.familyName)",
                                          birthday: birthday,
                                          image: nil,
-                                         imageData: contact.imageData,
+                                         imageData: contact.thumbnailImageData,
                                          type: .contactProfile(identifier: contact.identifier))
                 profiles.append(newProfile)
             }

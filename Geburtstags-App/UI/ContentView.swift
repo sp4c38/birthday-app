@@ -8,7 +8,32 @@
 import CoreData
 import SwiftUI
 
-// Countdown: https://catch-questions.com/english/posts/activity1.html
+struct BirthdaysListEntry: View {
+    let profile: Profile
+    
+    let birthdayDateFormatter = BirthdayRelativeDateFormatter()
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ((profile.image != nil) ? Image(uiImage: profile.image!) : Image(systemName: "person.crop.circle"))
+                    .resizable()
+                    .scaledToFit()
+                    .font(.body.weight(.thin))
+                    .foregroundColor(Color(red: 0.65, green: 0.65, blue: 0.67))
+                    .frame(height: 50)
+                    .clipShape(Circle())
+            
+            Text(birthdayDateFormatter.short(date: profile.nextBirthday))
+                .bold()
+                .font(.title)
+            
+            Text(profile.name)
+                .baselineOffset(-3)
+            
+            Spacer()
+        }
+    }
+}
 
 struct ContentView: View {
     init() {
@@ -19,8 +44,6 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) var managedObjectContext
     @Environment(\.scenePhase) var scenePhase
     @EnvironmentObject var profileManager: ProfileManager
-
-    let birthdayDateFormatter = BirthdayRelativeDateFormatter()
     
     @State var editProfile: Profile? = nil
     @State var showAddProfile = false
@@ -28,25 +51,8 @@ struct ContentView: View {
     var body: some View {
         List {
             ForEach(profileManager.profiles) { profile in
-                Button(action: { editProfile = profile }) {
-                    HStack(alignment: .center, spacing: 10) {
-                        if let profileImage = profile.image {
-                            Image(uiImage: profileImage)
-                                .resizable().scaledToFit().frame(height: 50)
-                                .clipShape(Circle())
-                        }
-                        
-                        Text(birthdayDateFormatter.short(date: profile.nextBirthday))
-                            .bold()
-                            .font(.title)
-                        
-                        Text(profile.name)
-                            .baselineOffset(-3)
-                        
-                        Spacer()
-                    }
-                    .foregroundColor(.black)
-                }
+                BirthdaysListEntry(profile: profile)
+                    .onTapGesture { editProfile = profile }
             }
         }
         .listStyle(.grouped)
@@ -68,8 +74,10 @@ struct ContentView: View {
 }
 
 struct ContentView_Previews: PreviewProvider {
+    static var previewContext = CoreDataManager()
+    
     static var previews: some View {
-        ContentView()
+        BirthdaysListEntry(profile: .previewProfile(previewContext: previewContext.container.viewContext))
     }
 }
     
