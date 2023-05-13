@@ -15,13 +15,17 @@ struct BirthdaysListEntry: View {
     
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
-            ((profile.image != nil) ? Image(uiImage: profile.image!) : Image(systemName: "person.crop.circle"))
-                    .resizable()
-                    .scaledToFit()
-                    .font(.body.weight(.thin))
-                    .foregroundColor(Color(red: 0.65, green: 0.65, blue: 0.67))
-                    .frame(height: 50)
-                    .clipShape(Circle())
+            Circle()
+                .hidden()
+                .overlay {
+                    ((profile.image != nil) ? Image(uiImage: profile.image!) : Image(systemName: "person.crop.circle"))
+                        .resizable()
+                        .scaledToFill()
+                        .font(.body.weight(.thin))
+                        .foregroundColor(Color(red: 0.65, green: 0.65, blue: 0.67))
+                }
+                .clipShape(Circle())
+                .frame(width: 50, height: 50)
             
             Text(birthdayDateFormatter.short(date: profile.nextBirthday))
                 .bold()

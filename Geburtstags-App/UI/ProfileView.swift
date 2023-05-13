@@ -248,6 +248,7 @@ struct ModifyProfileView: View {
 }
 
 struct ProfileView: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.managedObjectContext) var managedObjectContext
     @ObservedObject var profile: Profile
@@ -346,7 +347,7 @@ struct ProfileView: View {
                 .buttonStyle(BorderedProminentButtonStyle())
                 .padding([.leading, .trailing])
             }
-            .background(Color(red: 0.95, green: 0.95, blue: 0.97))
+            .background(colorScheme == .light ? Color(red: 0.95, green: 0.95, blue: 0.97) : Color.black)
         }
     }
 }
