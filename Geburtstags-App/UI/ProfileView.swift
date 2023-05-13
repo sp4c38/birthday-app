@@ -136,68 +136,54 @@ struct ModifyProfileView: View {
         self._profileWasDeleted = profileWasDeleted
     }
     
-    var content: some View {
-        VStack {
-            Form {
-                ProfilePictureView(imageState: $imageState)
-                    .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
-            
-                Section {
-                    TextField("Name", text: $name)
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar")
-                        
-                        DatePicker(
-                            "Birthday",
-                            selection: $birthday,
-                            in: ...Date.now,
-                            displayedComponents: [.date])
-                    }
-                }
-                
-                if profile != nil {
-                    Button(action: deleteProfile) {
-                        Text("Delete profile")
-                            .padding(5)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.61, green: 0.14, blue: 0.11, opacity: 1.0))
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                }
-            }
-            .alert("Database Error", isPresented: $databaseSaveFailed) {
-                Button("Ok", role: .cancel) { presentationMode.wrappedValue.dismiss() }
-            } message: {
-                Text("Couldn't perform this operation.")
-            }
-        }
-    }
-    
     var body: some View {
         NavigationStack {
             VStack {
-                if let profile,
-                   case .contactProfile(_) = profile.type {
-                    ContactManagedByContactApp()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("Understood", action: {  presentationMode.wrappedValue.dismiss() }) }
-                        }
-                } else {
-                    content
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("Save", action: saveProfile) }
+                Form {
+                    ProfilePictureView(imageState: $imageState)
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                
+                    Section {
+                        TextField("Name", text: $name)
+                        
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar")
                             
-                            if profile == nil {
-                                ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
-                            }
+                            DatePicker(
+                                "Birthday",
+                                selection: $birthday,
+                                in: ...Date.now,
+                                displayedComponents: [.date])
                         }
-                        .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
+                    }
+                    
+                    if profile != nil {
+                        Button(action: deleteProfile) {
+                            Text("Delete profile")
+                                .padding(5)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color(red: 0.61, green: 0.14, blue: 0.11, opacity: 1.0))
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                    }
+                }
+                .alert("Database Error", isPresented: $databaseSaveFailed) {
+                    Button("Ok", role: .cancel) { presentationMode.wrappedValue.dismiss() }
+                } message: {
+                    Text("Couldn't perform this operation.")
                 }
             }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Save", action: saveProfile) }
+                
+                if profile == nil {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: { presentationMode.wrappedValue.dismiss() }) }
+                }
+            }
+            .navigationTitle(profile == nil ? "Add profile" : "Edit profile")
         }
     }
     
@@ -267,6 +253,7 @@ struct ProfileView: View {
         NavigationStack {
             TimelineView(.periodic(from: Date(), by: 1)) { _ in
                 Form {
+                    // Single element time until birthday
                     Section {
                         VStack {
                             Picker("Test", selection: $selectedComponent) {
@@ -289,14 +276,9 @@ struct ProfileView: View {
                                     .baselineOffset(-6)
                             }
                         }
-                    } header: {
-                        HStack {
-                            Image(systemName: "smallcircle.filled.circle")
-                            Text("Single-element")
-                        }
-                        .padding(.bottom, 5)
                     }
                     
+                    // Multi element time until birthday
                     Section {
                         ForEach(formatter.difference(date: profile.nextBirthday), id: \.unit) { difference in
                             HStack(alignment: .center) {
@@ -308,12 +290,6 @@ struct ProfileView: View {
                                     .baselineOffset(-4)
                             }
                         }
-                    } header: {
-                        HStack {
-                            Image(systemName: "point.3.filled.connected.trianglepath.dotted")
-                            Text("Multi-element")
-                        }
-                        .padding(.bottom, 5)
                     }
                 }
                 .navigationTitle(profile.name)
@@ -339,13 +315,23 @@ struct ProfileView: View {
                     Text("Couldn't perform this operation.")
                 }
                 
-                Button(action: { showEditProfile = true }) {
-                    Text("Edit profile")
-                        .frame(maxWidth: .infinity)
-                        .padding(8)
+                VStack {
+                    if case .contactProfile(_) = profile.type {
+                        HStack {
+                            Text("To edit this profile, please edit it in the Contacts App.")
+                                .foregroundColor(.gray)
+                            Spacer()
+                        }
+                    } else {
+                        Button(action: { showEditProfile = true }) {
+                            Text("Edit profile")
+                                .frame(maxWidth: .infinity)
+                                .padding(8)
+                        }
+                        .buttonStyle(BorderedButtonStyle())
+                    }
                 }
-                .buttonStyle(BorderedProminentButtonStyle())
-                .padding([.leading, .trailing])
+                .padding([.leading, .trailing], 25)
             }
             .background(colorScheme == .light ? Color(red: 0.95, green: 0.95, blue: 0.97) : Color.black)
         }
