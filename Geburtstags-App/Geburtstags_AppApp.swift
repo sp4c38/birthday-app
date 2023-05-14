@@ -110,6 +110,19 @@ class ProfileManager: ObservableObject {
         print("Scheduling notifications.")
         if UserDefaults.standard.bool(forKey: udBirthdayNotificationsActiveKey) == true {
             let pendingNotifications = await UNUserNotificationCenter.current().pendingNotificationRequests()
+            
+            // Remove notifications for users not present in the list anymore.
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers:
+                pendingNotifications.compactMap { pendingNotification in
+                    if !(profiles.contains { $0.identifier == pendingNotification.identifier }) {
+                        print("Removing notifications for identifier \(pendingNotification.identifier)")
+                        return pendingNotification.identifier
+                    } else {
+                        return nil
+                    }
+                }
+            )
+                                                                                 
             for profile in profiles {
                 guard pendingNotifications.contains(where: { profile.identifier == $0.identifier }) == false
                 else { continue }
@@ -118,7 +131,6 @@ class ProfileManager: ObservableObject {
                 content.title = "Another Trip Around the Sun!"
                 content.body = "It's a birthday party! Join us in celebrating \(profile.name)'s birthday today and make their day unforgettable."
                 let birthdayDateComponents = Calendar.current.dateComponents([.month, .day, .hour], from: profile.nextBirthday)
-                print(birthdayDateComponents)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: birthdayDateComponents, repeats: true)
                 let request = UNNotificationRequest(identifier: profile.identifier, content: content, trigger: trigger)
                 
