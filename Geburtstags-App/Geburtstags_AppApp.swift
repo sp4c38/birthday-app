@@ -9,6 +9,13 @@ import Contacts
 import CoreData
 import SwiftUI
 
+let udShowWelcomeScreenKey = "showWelcomeScreen"
+let udShowWelcomeScreenDefault = true
+let udImportProfilesFromContactsKey = "importProfilesFromContacts"
+let udImportProfilesFromContactsDefault = false
+let udBirthdayNotificationsActiveKey = "birthdayNotifications"
+let udBirthdayNotificationsActiveDefault = false
+    
 class CoreDataManager {
     var container: NSPersistentContainer
     var loadError: NSError?
@@ -59,6 +66,7 @@ class ProfileManager: ObservableObject {
         print("Collecting profiles.")
         profiles = []
         
+        // Stored profiles
         do {
             let storedProfiles = try managedObjectContext.fetch(Profile.fetchRequest())
             profiles.append(contentsOf: storedProfiles)
@@ -66,35 +74,63 @@ class ProfileManager: ObservableObject {
             print("Error retrieving stored profiles: \(error).")
         }
         
-        let store = CNContactStore()
-        let keysToFetch = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactBirthdayKey, CNContactThumbnailImageDataKey] as [CNKeyDescriptor]
-        do {
-            let contacts = try store.unifiedContacts(matching: NSPredicate(value: true), keysToFetch: keysToFetch)
-            for contact in contacts {
-                guard let birthdayDateComponents = contact.birthday,
-                      let birthday = Calendar.current.date(from: birthdayDateComponents)
-                else { continue }
-                
-                let newProfile = Profile(context: tempManagedObjectContext,
-                                         name: "\(contact.givenName) \(contact.familyName)",
-                                         birthday: birthday,
-                                         image: nil,
-                                         imageData: contact.thumbnailImageData,
-                                         type: .contactProfile(identifier: contact.identifier))
-                profiles.append(newProfile)
+        // Contact profiles
+        if UserDefaults.standard.bool(forKey: udImportProfilesFromContactsKey) == true,
+           [.authorized, .restricted].contains(CNContactStore.authorizationStatus(for: .contacts)) {
+            let store = CNContactStore()
+            let keysToFetch = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactBirthdayKey, CNContactThumbnailImageDataKey] as [CNKeyDescriptor]
+            do {
+                let contacts = try store.unifiedContacts(matching: NSPredicate(value: true), keysToFetch: keysToFetch)
+                for contact in contacts {
+                    guard let birthdayDateComponents = contact.birthday,
+                          let birthday = Calendar.current.date(from: birthdayDateComponents)
+                    else { continue }
+                    
+                    let newProfile = Profile(context: tempManagedObjectContext,
+                                             identifier: contact.identifier,
+                                             name: "\(contact.givenName) \(contact.familyName)",
+                                             birthday: birthday,
+                                             image: nil,
+                                             imageData: contact.thumbnailImageData,
+                                             type: .contactProfile)
+                    profiles.append(newProfile)
+                }
+            } catch {
+                print("Error: \(error)")
             }
-        } catch {
-            print("Error: \(error)")
         }
         
         profiles.sort { $1.nextBirthday >= $0.nextBirthday } // Evaluate if input profiles are in increasing order.
+        Task { await scheduleNotifications() }
+    }
+    
+    func scheduleNotifications() async {
+        if UserDefaults.standard.bool(forKey: udBirthdayNotificationsActiveKey) == true {
+            let pendingNotifications = await UNUserNotificationCenter.current().pendingNotificationRequests()
+            print(pendingNotifications)
+            for profile in profiles {
+                guard pendingNotifications.contains(where: { profile.identifier == $0.identifier }) == false
+                else { continue }
+                
+                let content = UNMutableNotificationContent()
+                content.title = "Another Trip Around the Sun!"
+                content.body = "It's a birthday party! Join us in celebrating \(profile.name)'s birthday today and make their day unforgettable."
+                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 10, repeats: false)
+                let request = UNNotificationRequest(identifier: profile.identifier, content: content, trigger: trigger)
+                do {
+                    try await UNUserNotificationCenter.current().add(request)
+                    print("Added scheduled notification for profile \(profile.name).")
+                } catch {
+                    print("Error adding scheduled notification to UNUserNotificationCenter: \(error)")
+                }
+            }
+        }
     }
 }
 
 @main
 struct Geburtstags_AppApp: App {
-    // Will only have true as a value if showWelcomeScreen wasn't yet changed at any point in time.
-    @AppStorage("showWelcomeScreen") var showWelcomeScreen = true
+    @AppStorage(udShowWelcomeScreenKey) var showWelcomeScreen = udShowWelcomeScreenDefault
     
     let coreDataManager: CoreDataManager
     let profileManager: ProfileManager

@@ -208,6 +208,7 @@ struct ModifyProfileView: View {
         } else {
             print("Saved new profile.")
             _ = Profile(context: managedObjectContext,
+                        identifier: UUID().uuidString,
                         name: name,
                         birthday: birthday,
                         image: uiImage,
@@ -316,7 +317,7 @@ struct ProfileView: View {
                 }
                 
                 VStack {
-                    if case .contactProfile(_) = profile.type {
+                    if case .contactProfile = profile.type {
                         HStack {
                             Text("To edit this profile, please edit it in the Contacts App.")
                                 .foregroundColor(.gray)

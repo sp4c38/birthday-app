@@ -11,7 +11,7 @@ import Foundation
 import SwiftUI
 
 enum ProfileType {
-    case contactProfile(identifier: String)
+    case contactProfile
     case storedProfile
 }
 
@@ -21,6 +21,7 @@ public class Profile: NSManagedObject {
         return NSFetchRequest<Profile>(entityName: "Profile")
     }
     
+    @NSManaged public var identifier: String
     @NSManaged public var name: String
     @NSManaged public var birthday: Date
     @NSManaged public var imageData: Data?
@@ -62,18 +63,20 @@ public class Profile: NSManagedObject {
     
     static func previewProfile(previewContext: NSManagedObjectContext) -> Profile {
         Profile(context: previewContext,
-                              name: "Test Profile Name",
-                              birthday: Date(timeIntervalSince1970: 1138316400),
-                              image: UIImage(systemName: "arrow.up.doc.on.clipboard"),
-                              type: .storedProfile
+                identifier: UUID().uuidString,
+                name: "Test Profile Name",
+                birthday: Date(timeIntervalSince1970: 1138316400),
+                image: UIImage(systemName: "arrow.up.doc.on.clipboard"),
+                type: .storedProfile
         )
     }
 
     // To avoid unneeded optional values these steps were followed: https://www.jessesquires.com/blog/2022/01/26/core-data-optionals/
-    init(context: NSManagedObjectContext, name: String, birthday: Date, image: UIImage?, imageData: Data? = nil, type: ProfileType) {
+    init(context: NSManagedObjectContext, identifier: String, name: String, birthday: Date, image: UIImage?, imageData: Data? = nil, type: ProfileType) {
         let entity = NSEntityDescription.entity(forEntityName: "Profile", in: context)!
          
         super.init(entity: entity, insertInto: context)
+        self.identifier = identifier
         self.name = name
         self.birthday = birthday
         self.image = image
