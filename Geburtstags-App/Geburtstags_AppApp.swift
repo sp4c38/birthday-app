@@ -15,6 +15,8 @@ let udImportProfilesFromContactsKey = "importProfilesFromContacts"
 let udImportProfilesFromContactsDefault = false
 let udBirthdayNotificationsActiveKey = "birthdayNotifications"
 let udBirthdayNotificationsActiveDefault = false
+
+let unNotificationOptions: UNAuthorizationOptions = [.alert, .badge]
     
 class CoreDataManager {
     var container: NSPersistentContainer
@@ -105,9 +107,9 @@ class ProfileManager: ObservableObject {
     }
     
     func scheduleNotifications() async {
+        print("Scheduling notifications.")
         if UserDefaults.standard.bool(forKey: udBirthdayNotificationsActiveKey) == true {
             let pendingNotifications = await UNUserNotificationCenter.current().pendingNotificationRequests()
-            print(pendingNotifications)
             for profile in profiles {
                 guard pendingNotifications.contains(where: { profile.identifier == $0.identifier }) == false
                 else { continue }
@@ -115,8 +117,11 @@ class ProfileManager: ObservableObject {
                 let content = UNMutableNotificationContent()
                 content.title = "Another Trip Around the Sun!"
                 content.body = "It's a birthday party! Join us in celebrating \(profile.name)'s birthday today and make their day unforgettable."
-                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 10, repeats: false)
+                let birthdayDateComponents = Calendar.current.dateComponents([.month, .day, .hour], from: profile.nextBirthday)
+                print(birthdayDateComponents)
+                let trigger = UNCalendarNotificationTrigger(dateMatching: birthdayDateComponents, repeats: true)
                 let request = UNNotificationRequest(identifier: profile.identifier, content: content, trigger: trigger)
+                
                 do {
                     try await UNUserNotificationCenter.current().add(request)
                     print("Added scheduled notification for profile \(profile.name).")
@@ -124,6 +129,9 @@ class ProfileManager: ObservableObject {
                     print("Error adding scheduled notification to UNUserNotificationCenter: \(error)")
                 }
             }
+        } else {
+            print("Removed all pending notifications.")
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         }
     }
 }

@@ -16,15 +16,30 @@ struct SettingsView: View {
     @State var contactAuthorizationStatus: CNAuthorizationStatus = .notDetermined
     
     @AppStorage(udBirthdayNotificationsActiveKey) var birthdayNotificationsActive = udBirthdayNotificationsActiveDefault
+    @State var notificationAuthorizationStatus: UNAuthorizationStatus = .notDetermined
     
     var body: some View {
         Form {
             Section {
-                Toggle(isOn: $birthdayNotificationsActive) {
-                    Text("Notifications")
+                VStack(alignment: .leading) {
+                    if notificationAuthorizationStatus == .denied {
+                        Button(action: {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            Text("Please click here to grant notification access in the Settings App.")
+                        }
+                    }
+                    
+                    Toggle(isOn: .init(get: { return birthdayNotificationsActive }, set: { newValue in Task { await birthdayNotificationsToggled(newValue) } })) {
+                        Text("Notifications")
+                    }
+                    .opacity(notificationAuthorizationStatus == .denied ? 0.4 : 1)
                 }
             } footer: {
                 Text("You will be notified at midnight on the day of each birthday.")
+                    .opacity(notificationAuthorizationStatus == .denied ? 0.4 : 1)
             }
     
             Section {
@@ -35,7 +50,7 @@ struct SettingsView: View {
                                 UIApplication.shared.open(url)
                             }
                         }) {
-                            Text("Please click here to grant contact access in the Settings App")
+                            Text("Please click here to grant contact access in the Settings App.")
                         }
                     }
                         
@@ -50,8 +65,8 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .onAppear { getCNAuthorizationStatus() }
-        .onChange(of: scenePhase) { if $0 == .active { getCNAuthorizationStatus() } }
+        .onAppear { getCNAuthorizationStatus(); Task { await getUNAuthorizationStatus() } }
+        .onChange(of: scenePhase) { if $0 == .active { getCNAuthorizationStatus(); Task { await getUNAuthorizationStatus() } } }
     }
     
     func getCNAuthorizationStatus() {
@@ -61,24 +76,41 @@ struct SettingsView: View {
         }
     }
     
+    func getUNAuthorizationStatus() async {
+        let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
+        notificationAuthorizationStatus = notificationSettings.authorizationStatus
+        if notificationAuthorizationStatus == .denied {
+            birthdayNotificationsActive = false
+        }
+    }
+    
     func importProfileFromContactsToggled(_ newValue: Bool) async {
         if newValue == true {
             let store = CNContactStore()
-            let contactAccessGranted: Bool
             do {
-                contactAccessGranted = try await store.requestAccess(for: .contacts)
+                importProfilesFromContacts = try await store.requestAccess(for: .contacts)
             } catch {
                 print("Error getting contact access: \(error).")
-                contactAccessGranted = false
-            }
-            if contactAccessGranted {
-                importProfilesFromContacts = true
-                profileManager.collectProfiles()
+                importProfilesFromContacts = false
             }
         } else {
             importProfilesFromContacts = false
         }
         profileManager.collectProfiles()
+    }
+    
+    func birthdayNotificationsToggled(_ newValue: Bool) async {
+        if newValue == true {
+            do {
+                birthdayNotificationsActive = try await UNUserNotificationCenter.current().requestAuthorization(options: unNotificationOptions)
+            } catch {
+                print("Error getting notification access: \(error)")
+                birthdayNotificationsActive = false
+            }
+        } else {
+            birthdayNotificationsActive = false
+        }
+        await profileManager.scheduleNotifications()
     }
 }
 
