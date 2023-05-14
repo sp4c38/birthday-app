@@ -334,7 +334,7 @@ struct ProfileView: View {
                 }
                 .padding([.leading, .trailing], 25)
             }
-            .background(colorScheme == .light ? Color(red: 0.95, green: 0.95, blue: 0.97) : Color.black)
+            .background(colorScheme == .light ? Color(red: 0.95, green: 0.95, blue: 0.97) : Color(red: 0.11, green: 0.11, blue: 0.12))
         }
     }
 }
